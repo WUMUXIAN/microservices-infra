@@ -1,6 +1,6 @@
 # A microservices insfrastruture customized for AWS Linux distribution.
 
-![Microservices infrastructure](raw/master/screenshots/Microservices infrastructure.png)
+![Microservices infrastructure](https://raw.githubusercontent.com/WUMUXIAN/microservices-infra/master/screenshots/Microservices%20infrastructure.png)
 
 # Components
 - Mesos - Resource manager and scheduler for the cluster
