@@ -1,0 +1,6 @@
+---
+
+- hosts: mesos
+  gather_facts: yes
+  roles:
+    - weave
