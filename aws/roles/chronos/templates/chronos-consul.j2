@@ -1,0 +1,12 @@
+{ 
+  "service": {
+    "name": "chronos",
+    "tags": [ "chronos" ],
+    "port": 8081,
+    "check": {
+      "script": "curl --silent --show-error --fail --dump-header /dev/stderr --retry 2 --connect-timeout 5 --max-time 5 http://127.0.0.1:8081/ping",
+      "interval": "10s",
+      "timeout": "1s"
+    }
+  }
+}

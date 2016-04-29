@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# chkconfig: 345 80 80
+# description: kibana is a data visualization tool. \
+# processname: kibana
+# pidfile: /var/run/kibana.pid
+
+. /etc/init.d/functions
+
+PIDFILE=/var/run/kibana.pid
+
+start() {
+        echo -n "Starting kibana: "
+        if [ -f $PIDFILE ]; then
+                PID=`cat $PIDFILE`
+                echo kibana already running: $PID
+                exit 2;
+        else
+                PID=$(/usr/bin/docker run -d \
+                --name=kibana \
+                --volume=/etc/kibana/kibana.yml:/opt/kibana/config/kibana.yml \
+                -p 5601:5601 \
+                {{ kibana_image }}:{{ kibana_image_tag }})   
+                RETVAL=$?
+                echo
+                echo $PID >> $PIDFILE
+                [ $RETVAL -eq 0 ] && touch /var/lock/subsys/kibana
+                return $RETVAL
+        fi
+
+}
+
+stop() {
+        echo -n "Shutting down kibana: "
+        echo        
+        /usr/bin/docker rm -f kibana
+        rm $PIDFILE
+        echo
+        rm -f /var/lock/subsys/kibana
+        return 0
+}
+
+status() {
+        if [ -f $PIDFILE ]; then
+                echo kibana is running
+        else
+                echo kibana is stopped
+        fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage:  {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+exit $?

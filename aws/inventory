@@ -1,0 +1,19 @@
+[mesos-master]
+mesos-master1
+mesos-master2
+mesos-master3
+
+[mesos-slave]
+mesos-slave1
+mesos-slave2
+mesos-slave3
+
+[proxy]
+mesos-slave3
+
+[mesos:children]
+mesos-master
+mesos-slave
+
+[local]
+localhost ansible_connection=local

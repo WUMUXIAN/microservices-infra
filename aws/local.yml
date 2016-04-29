@@ -1,0 +1,30 @@
+---
+
+- hosts: local
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: ensure host name and ip exists
+      blockinfile:
+        dest: /etc/hosts
+        state: present
+        block: |
+          {% for item in groups['all'] %}
+          {% if hostvars[item].private_ipv4 is defined %}
+          {{ hostvars[item].private_ipv4 }} {{ item }}
+          {% endif %}
+          {% endfor %}
+    - name: configure ssh file
+      blockinfile:
+        dest: /Users/{{ user_name }}/.ssh/config
+        state: present
+        create: yes
+        block: |
+          {% for item in groups['all'] %}
+          {% if hostvars[item].private_ipv4 is defined %}
+          Host {{ item }}
+              User ec2-user
+              IdentityFile {{ playbook_dir }}/Analytics.pem
+         
+          {% endif %}
+          {% endfor %}

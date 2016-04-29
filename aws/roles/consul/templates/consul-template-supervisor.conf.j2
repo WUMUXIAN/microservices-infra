@@ -1,0 +1,7 @@
+[program:consul-template]
+command=/usr/bin/consul-template -config /etc/consul-template/config.d
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisord/consul-template/err.log
+stdout_logfile=/var/log/supervisord/consul-template/out.log
+priority=997

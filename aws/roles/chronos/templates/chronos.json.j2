@@ -1,0 +1,34 @@
+{
+    "id": "chronos",
+    "instances": 1,
+    "cpus": 0.1,
+    "mem": 256,
+    "container": {
+        "type": "DOCKER",
+        "docker": {
+            "image": "{{ chronos_image_name }}:{{ chronos_image_tag }}",
+            "network": "BRIDGE",
+            "portMappings": [
+                {"containerPort":{{ chronos_port }}, "hostPort": 0, "servicePort": 0, "protocol":"tcp"}
+            ]
+        }
+    },
+    "labels": {
+      "traefik.backend": "chronos"
+    },
+    "constraints": [["id", "CLUSTER", "{{ hostvars[groups['mesos-slave'].0].private_ipv4 }}"]],
+    "cmd": "/usr/bin/chronos run_jar --master zk://{% for host in groups['mesos-master'] %}{{ hostvars[host].private_ipv4 }}:2181{% if not loop.last %},{% endif %}{% endfor %}/mesos --zk_hosts {% for host in groups['mesos-master'] %}{{ hostvars[host].private_ipv4 }}:2181{% if not loop.last %},{% endif %}{% endfor %} --http_port {{ chronos_port }} --hostname $(hostname -i)",
+    "env": {
+      "WEAVE_CIDR": "net:10.32.1.0/24"
+    },
+    "healthChecks": [
+      {
+        "protocol": "HTTP",
+        "portIndex": 0,
+        "path": "/ping",
+        "gracePeriodSeconds": 5,
+        "intervalSeconds": 20,
+        "maxConsecutiveFailures": 3
+      }
+    ]
+}

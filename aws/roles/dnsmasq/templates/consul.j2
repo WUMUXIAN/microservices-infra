@@ -1,0 +1,34 @@
+#Listen on all interfaces
+interface=*
+
+# Listen on it's routeable address so that it can be used by docker containers
+listen-address={{ private_ipv4 }}
+
+addn-hosts=/etc/hosts
+
+# Never forward addresses in the non-routed address spaces.
+bogus-priv
+
+server=8.8.8.8
+server=8.8.4.4
+
+# configure DNS resolution to consul servers
+server=/{{ consul_dns_domain }}/127.0.0.1#8600
+
+{% for host in groups[consul_servers_group] %}
+{% if hostvars[host].private_ipv4 != private_ipv4 %}
+server=/{{ consul_dns_domain }}/{{ hostvars[host].private_ipv4 }}#8600
+
+{% endif %}
+{% endfor %}
+
+{% if ansible_domain is defined and ansible_domain != '' %}
+{% for nameserver in nameservers | unique %}
+{% if nameserver != '127.0.0.1' %}
+server=/{{ ansible_domain }}/{{ nameserver }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+log-queries
+log-facility=/var/log/dnsmasq.log

@@ -1,0 +1,114 @@
+---
+- name: install packages
+  become: yes
+  become_method: sudo
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - dnsmasq
+    - bind-utils
+  tags:
+    - dnsmasq
+    - bootstrap
+
+- name: collect nameservers
+  become: yes
+  become_method: sudo
+  shell: "cat /etc/resolv.conf | grep -i '^nameserver' | cut -d ' ' -f2"
+  register: nameservers_output
+  tags:
+    - dnsmasq
+
+- name: collect dns search list
+  become: yes
+  become_method: sudo
+  shell: "cat /etc/resolv.conf | grep -i '^search' | cut -d ' ' -f2- | tr ' ' '\n'"
+  register: dns_search_list_output
+  tags:
+    - dnsmasq
+
+- name: set nameservers
+  become: yes
+  become_method: sudo
+  set_fact:
+    nameservers: "{{ nameservers_output.stdout_lines }}"
+  tags:
+    - dnsmasq
+
+- name: set dns search list
+  become: yes
+  become_method: sudo
+  set_fact:
+    domain_search_list: "{{ dns_search_list_output.stdout_lines }}"
+  tags:
+    - dnsmasq
+
+- name: configure dnsmasq to enable other configuration files
+  become: yes
+  become_method: sudo
+  lineinfile:
+    line: conf-dir=/etc/dnsmasq.d
+    dest: /etc/dnsmasq.conf
+    state: present
+    mode: 0755
+  tags:
+    - dnsmasq
+
+- name: configure dnsmasq for consul
+  become: yes
+  become_method: sudo
+  template:
+    src: ./consul.j2
+    dest: /etc/dnsmasq.d/consul
+    mode: 0755
+    force: yes
+  when: consul_dc_group is defined
+  notify:
+    - restart dnsmasq
+  tags:
+    - dnsmasq
+    - dnsmasq-config
+
+- name: enable dnsmasq
+  become: yes
+  become_method: sudo
+  service:
+    name: dnsmasq
+    state: started
+    enabled: yes
+  tags:
+    - dnsmasq
+
+- name: List network-scripts which need fixup
+  become: yes
+  become_method: sudo
+  shell: "find /etc/sysconfig/network-scripts -name 'ifcfg-*'"
+  register: list_of_network_scripts
+  tags:
+    - dnsmasq
+
+- name: fixing PEERDNS in network-scripts
+  become: yes
+  become_method: sudo
+  lineinfile:
+    dest: "{{ item }}"
+    line: "PEERDNS=no"
+    regexp: ^PEERDNS=.*'
+  with_items: list_of_network_scripts.stdout_lines
+  tags:
+    - dnsmasq
+
+- name: add dnsmasq to /etc/resolv.conf
+  become: yes
+  become_method: sudo
+  template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+    mode: 0644
+  tags:
+    - dnsmasq
+
+- meta: flush_handlers
+  tags:
+    - dnsmasq

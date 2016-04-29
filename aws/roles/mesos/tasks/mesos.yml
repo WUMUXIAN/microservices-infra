@@ -1,0 +1,15 @@
+---
+
+- name: install mesosphere yum repo
+  become: yes
+  become_method: sudo
+  yum: name=http://repos.mesosphere.com/el/6/noarch/RPMS/mesosphere-el-repo-6-2.noarch.rpm state=present
+  tags:
+    - mesos
+
+- name: install mesos
+  become: yes
+  become_method: sudo
+  yum: pkg=device-mapper-event-libs,mesos state=latest
+  tags:
+    - mesos

@@ -1,0 +1,61 @@
+---
+
+- name: install consul-template
+  become: yes
+  become_method: sudo
+  unarchive: src=https://releases.hashicorp.com/consul-template/0.14.0/consul-template_0.14.0_linux_amd64.zip dest=/usr/bin copy=false
+  tags:
+    - consul 
+    - consul-template
+
+- name: ensure the configraution directory is present
+  become: yes
+  become_method: sudo
+  file: path=/etc/consul-template/{{ item }} state=directory
+  with_items:
+    - config.d
+    - templates
+  tags:
+    - consul
+    - consul-template-configure
+    - consul-template
+
+- name: configure consul-template
+  become: yes
+  become_method: sudo
+  copy: src=consul.hcl dest=/etc/consul-template/config.d
+  tags:
+    - consul
+    - consul-template
+
+- name: ensure the log directory exist
+  become: yes
+  become_method: sudo
+  file: path=/var/log/supervisord/consul-template state=directory
+  tags:
+    - consul
+    - consul-template
+
+- name: add consul-template as supervisord program
+  become: yes
+  become_method: sudo
+  template: src=consul-template-supervisor.conf.j2 dest=/etc/supervisor/conf.d/consul-template.conf force=yes
+  tags:
+    - consul
+    - consul-template
+
+- name: reread supervisor
+  become: yes
+  become_method: sudo
+  shell: /usr/local/bin/supervisorctl reread
+  tags:
+    - consul
+    - consul-template
+
+- name: update supervisor
+  become: yes
+  become_method: sudo
+  shell: /usr/local/bin/supervisorctl update
+  tags:
+    - consul
+    - consul-template

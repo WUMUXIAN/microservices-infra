@@ -1,0 +1,40 @@
+{
+  "id": "kibana-docker",
+  "cpus": 0.2,
+  "mem": 256,
+  "instances": 1,
+  "args": [
+    "--spring.config.location=/docker.properties",
+    "--mesos.zookeeper.server=zookeeper.service.{{ consul_dns_domain }}:2181",
+    "--elasticsearch.http=http://elasticsearch-executor.service.{{ consul_dns_domain }}:31000",
+    "--server.port=31200"
+  ],
+  "env": {
+    "JAVA_OPTS": "-Xms32m -Xmx128m"
+  },
+  "container": {
+    "type": "DOCKER",
+    "volumes": [{
+      "containerPath": "/docker.properties",
+      "hostPath": "/etc/kibana/docker.properties",
+      "mode": "RW"
+    },
+    {
+      "containerPath": "/opt/kibana/config/kibana.yml",
+      "hostPath": "/etc/kibana/kibana.yml",
+      "mode": "RW"
+    }],
+    "docker": {
+      "image": "containersol/mesosframework:0.1.0",
+      "network": "HOST"
+    }
+  },
+  "ports": [
+    31200
+  ],
+  "requirePorts": true,
+  "labels": {
+    "traefik.backend": "kibana"
+  },
+  "constraints": [["hostname", "CLUSTER", "{{ hostvars[groups['mesos-slave'].1].private_ipv4 }}"]]
+}

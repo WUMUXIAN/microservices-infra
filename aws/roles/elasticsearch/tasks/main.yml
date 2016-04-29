@@ -1,0 +1,36 @@
+---
+# Include mesos vars so that we can access the zk information in the json file
+#- include_vars: "{{ playbook_dir }}/../roles/mesos/defaults/main.yml"
+
+- name: create json files for jobs
+  become: yes
+  become_method: sudo
+  run_once: true
+  template:
+    src: '{{ item }}.json.j2'
+    dest: /etc/marathon/apps/{{ item }}.json
+  with_items:
+    - elasticsearch
+  tags:
+    - elasticsearch
+
+- name: pull the docker image
+  become: yes
+  become_method: sudo
+  command: /usr/bin/docker pull mesos/elasticsearch-scheduler
+  tags:
+    - elasticsearch
+    - bootstrap
+
+- name: install mesos elasticsearch framework
+  run_once: true
+  become: yes
+  become_method: sudo
+  command: 'curl -X PUT -d@/etc/marathon/apps/{{ item }}.json -H "Content-Type: application/json" http://localhost:8080/v2/apps/{{ item }}'
+  changed_when: false
+  failed_when: "'deploymentId' not in result.stdout"
+  register: result
+  with_items:
+    - elasticsearch
+  tags:
+    - elasticsearch

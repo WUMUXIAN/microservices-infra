@@ -1,0 +1,24 @@
+---
+
+# Tasks to install zookeeper, only mesos masters will have this role
+
+- name: install zookeeper yum repo
+  become: yes
+  become_method: sudo
+  yum: name=http://archive.cloudera.com/cdh4/one-click-install/redhat/6/x86_64/cloudera-cdh-4-0.x86_64.rpm state=present
+  tags:
+    - zookeeper
+
+- name: install zookeeper
+  become: yes
+  become_method: sudo
+  yum: pkg=zookeeper,zookeeper-server state=latest
+  tags:
+    - zookeeper
+
+- name: install zookeepercli
+  become: yes
+  become_method: sudo
+  yum: name=https://github.com/outbrain/zookeepercli/releases/download/v1.0.10/zookeepercli-1.0.10-1.x86_64.rpm state=present
+  tags:
+    - zookeeper

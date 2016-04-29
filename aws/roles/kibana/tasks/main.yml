@@ -1,0 +1,139 @@
+---
+
+- name: ensure kibana docker image is present
+  become: yes
+  become_method: sudo
+  command: /usr/bin/docker pull {{ kibana_image }}:{{ kibana_image_tag }}
+  tags:
+    - kibana
+
+- name: create kibana configuration directory
+  become: yes
+  become_method: sudo
+  file:
+    path: /etc/kibana
+    state: directory
+    mode: 0755
+  tags:
+    - kibana
+
+- name: create kibana configuration file
+  become: yes
+  become_method: sudo
+  file:
+    path: /etc/kibana/kibana.yml
+    state: touch
+    mode: 0755
+  tags:
+    - kibana
+
+# - name: create kibana mesos framework executor configuration file
+#   become: yes
+#   become_method: sudo
+#   template:
+#     dest: /etc/kibana/docker.properties
+#     src: docker.properties
+#   tags:
+#     - kibana
+
+- name: generate service file
+  become: yes
+  become_method: sudo
+  template:
+    src: kibana.j2
+    dest: /etc/init.d/kibana 
+    mode: a+x
+  tags:
+    - kibana
+
+- name: deploy kibana consul-template configuration
+  become: yes
+  become_method: sudo
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: kibana.cfg
+      dest: /etc/consul-template/config.d
+    - src: kibana.yml.tmpl
+      dest: /etc/consul-template/templates/kibana.yml.tmpl
+    - src: kibana-dashboard.cfg
+      dest: /etc/consul-template/config.d
+  notify:
+    - reload consul-template
+  tags:
+    - kibana
+
+- name: deploy kibana create dashboard script
+  become: yes
+  become_method: sudo
+  template:
+    src: kibana-create-dashboard.sh.tmpl
+    dest: /etc/consul-template/templates/kibana-create-dashboard.sh.tmpl
+  notify:
+    - reload consul-template
+  tags:
+    - kibana
+
+- name: generate kibana consul service
+  become: yes
+  become_method: sudo
+  copy:
+    src: 'kibana-consul.json'
+    dest: '/etc/consul/kibana.json'
+  notify:
+    - reload consul
+  tags:
+    - kibana
+
+# - name: create json files for jobs
+#   become: yes
+#   become_method: sudo
+#   run_once: true
+#   template:
+#     src: '{{ item }}.json.j2'
+#     dest: /etc/marathon/apps/{{ item }}.json
+#   with_items:
+#     - kibana
+#     - kibana-mesos
+#   tags:
+#     - kibana
+#     - kibana-deploy
+
+# - name: deploy kibana
+#   run_once: true
+#   become: yes
+#   become_method: sudo
+#   command: 'curl -X PUT -d@/etc/marathon/apps/{{ item }}.json -H "Content-Type: application/json" http://localhost:8080/v2/apps/{{ item }}'
+#   changed_when: false
+#   failed_when: "'deploymentId' not in result.stdout"
+#   register: result
+#   with_items:
+#     - kibana
+#   tags:
+#     - kibana
+#     - kibana-deploy
+
+# - name: deploy kibana mesos framework
+#   run_once: true
+#   become: yes
+#   become_method: sudo
+#   command: 'curl -X PUT -d@/etc/marathon/apps/{{ item }}.json -H "Content-Type: application/json" http://localhost:8080/v2/apps/{{ item }}'
+#   changed_when: false
+#   failed_when: "'deploymentId' not in result.stdout"
+#   register: result
+#   with_items:
+#     - kibana-mesos
+#   tags:
+#     - kibana
+#     - kibana-deploy
+
+- name: enable and start kibana
+  become: yes
+  become_method: sudo
+  service:
+    name: kibana
+    enabled: yes
+    state: restarted
+  tags:
+    - kibana

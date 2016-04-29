@@ -1,0 +1,31 @@
+{
+  "id": "marathon-consul",
+  "args": ["--registry=http://consul.service.consul:8500",
+    "--registry-token=e237f786-9328-466a-b97d-3067533298b2",
+    "--marathon-location=marathon.service.consul:8080"
+  ],
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "{{ marathon_consul_image }}:{{ marathon_consul_image_tag }}",
+      "network": "BRIDGE",
+      "portMappings": [{
+        "containerPort": 4000,
+        "hostPort": 31010,
+        "protocol": "tcp"
+      }]
+    }
+  },
+  "constraints": [["hostname", "CLUSTER", "{{ hostvars[groups['mesos-slave'].0].private_ipv4 }}"], ["hostname", "UNIQUE"]],
+  "healthChecks": [{
+    "protocol": "HTTP",
+    "path": "/health",
+    "portIndex": 0
+  }],
+  "labels": {
+    "traefik.enable": "false"
+  },
+  "instances": 1,
+  "cpus": 0.1,
+  "mem": 128
+}

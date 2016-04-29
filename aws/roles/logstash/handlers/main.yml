@@ -1,0 +1,23 @@
+---
+
+- name: enable and start logstash
+  become: yes
+  become_method: sudo
+  service:
+    name: logstash
+    enabled: yes
+    state: started
+
+- name: restart logstash
+  become: yes
+  become_method: sudo
+  service:
+    name: logstash
+    state: restarted
+
+- name: restart rsyslog
+  become: yes
+  become_method: sudo
+  service:
+    name: rsyslog
+    state: restarted

@@ -1,0 +1,16 @@
+---
+
+- name: copy the python job files
+  become: yes
+  become_method: sudo
+  copy: src=../../python/ dest=/python force=yes
+  tags:
+    - source
+
+- name: copy the submission script
+  become: yes
+  become_method: sudo
+  become_user: ec2-user
+  template: src=./submit_job_docker.sh.j2 dest=./submit_job_docker.sh force=yes
+  tags:
+    - source

@@ -1,0 +1,83 @@
+---
+
+- name: download weave
+  become: yes
+  become_method: sudo
+  get_url: url=http://git.io/weave dest=/usr/bin/weave force=yes  
+  tags:
+    - weave
+
+- name: make it executable
+  become: yes
+  become_method: sudo
+  file: path=/usr/bin/weave mode=a+x
+  tags:
+    - weave
+
+- name: enable kernel packet forwarding
+  become: yes
+  become_method: sudo
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+    state: present
+    reload: yes
+  tags:
+    - weave
+
+- name: ensure configuration directory exists
+  become: yes
+  become_method: sudo
+  file: path=/etc/weave state=directory
+  tags:
+    - weave
+
+- name: configure weave
+  become: yes
+  become_method: sudo
+  template: src=./{{ item }}.conf.j2 dest=/etc/weave/{{ item }}.conf force=yes
+  with_items:
+    - weave
+    - weaveproxy
+  tags:
+    - weave
+    - weave-config
+
+- name: setup weave
+  become: yes
+  become_method: sudo
+  command: /usr/bin/weave setup
+  tags:
+    - weave
+
+- name: add weaveproxy as service
+  become: yes
+  become_method: sudo
+  template: src=./weaveproxy.j2 dest=/etc/init.d/weaveproxy mode=a+x force=yes
+  tags:
+    - weave
+    - weave-config
+
+- name: add weave as service
+  become: yes
+  become_method: sudo
+  template: src=./weave.j2 dest=/etc/init.d/weave mode=a+x force=yes
+  tags:
+    - weave
+
+- name: enable and start services
+  become: yes
+  become_method: sudo
+  service: name={{ item }} state=started enabled=yes
+  with_items:
+    - weaveproxy
+    - weave
+  tags:
+    - weave
+
+- name: expose weave net to all hosts
+  become: yes
+  become_method: sudo
+  command: /usr/bin/weave expose net:10.32.1.0/24
+  tags:
+    - weave

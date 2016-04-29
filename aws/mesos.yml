@@ -1,0 +1,21 @@
+---
+
+- hosts: mesos
+  gather_facts: yes
+  roles:
+    - common
+    - docker
+
+- hosts: mesos-master
+  vars:
+    mesos_mode: master
+  roles:
+    - zookeeper
+    - mesos
+    - marathon
+
+- hosts: mesos-slave
+  vars:
+    mesos_mode: slave
+  roles:
+    - mesos

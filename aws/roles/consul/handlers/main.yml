@@ -1,0 +1,12 @@
+---
+- name: restart consul
+  become: yes
+  become_method: sudo
+  command: /usr/local/bin/consul-rolling-restart.sh {{ consul_acl_master_token }}
+  notify:
+    - wait for consul to listen
+
+- name: restart nginx-consul
+  become: yes
+  become_method: sudo
+  service: name=nginx-consul state=restarted

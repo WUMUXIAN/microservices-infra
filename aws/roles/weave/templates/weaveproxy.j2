@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# chkconfig: 345 80 80
+# description: weaveproxy is a weave proxy for docker. \
+# processname: weaveproxy
+# pidfile: /var/run/weaveproxy.pid
+
+. /etc/init.d/functions
+
+DAEMON=/usr/bin/weave
+PIDFILE=/var/run/weaveproxy.pid
+ENVFILE=/etc/weave/weaveproxy.conf
+
+[ -x "$DAEMON" ] || exit 0
+eval $(cat $ENVFILE)
+
+start() {
+        echo -n "Starting weaveproxy: "
+        if [ -f $PIDFILE ]; then
+                PID=`cat $PIDFILE`
+                echo weaveproxy already running: $PID
+                exit 2;
+        else
+                PID=$($DAEMON launch-proxy $WEAVEPROXY_OPTIONS)
+                RETVAL=$?                
+                echo                
+                echo $PID >> $PIDFILE
+                [ $RETVAL -eq 0 ] && touch /var/lock/subsys/weaveproxy
+                return $RETVAL
+        fi
+
+}
+
+stop() {
+        echo -n "Shutting down weaveproxy: "
+        echo
+        $DAEMON stop-proxy
+        rm $PIDFILE
+        echo
+        rm -f /var/lock/subsys/weaveproxy
+        return 0
+}
+
+status() {
+        if [ -f $PIDFILE ]; then
+                echo weaveproxy is running
+        else
+                echo weaveproxy is stopped
+        fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage:  {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+exit $?

@@ -1,0 +1,161 @@
+---
+
+# The common tasks that both mesos master and mesos slave will run
+
+- name: set timezone to etc/utc
+  become: yes
+  become_method: sudo
+  file:
+    src: /usr/share/zoneinfo/Etc/UTC
+    dest: /etc/localtime
+    state: link
+    force: yes
+  tags:
+    - bootstrap
+    - common
+
+- name: update hosts file
+  become: yes
+  become_method: sudo
+  template:
+    src: hosts.j2
+    dest: /etc/hosts
+    mode: 0644
+    force: yes
+  tags:
+    - bootstrap
+    - common
+
+- name: update yum
+  become: yes
+  become_method: sudo
+  yum: name=* state=latest
+  tags:
+    - bootstrap
+    - common
+
+- name: add yum-config-manager
+  become: yes
+  become_method: sudo
+  yum:
+    name: yum-utils
+  tags:
+    - bootstrap
+    - common
+
+- name: increase timeouts in YUM
+  become: yes
+  become_method: sudo
+  shell: "yum-config-manager --save --setopt {{ item.option }}={{ item.value }}"
+  with_items:
+    - option: timeout
+      value: 60.0
+    - option: retries
+      value: 30
+  tags:
+    - bootstrap
+    - common
+
+- name: enable EPEL repo
+  become: yes
+  become_method: sudo
+  yum:
+    name: epel-release
+    state: latest
+  tags:
+    - bootstrap
+    - common
+
+- name: install system utilities
+  become: yes
+  become_method: sudo
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - httpd-tools
+    - nc
+    - openssh
+    - policycoreutils-python
+    - unzip
+    - jq
+    - wget
+    - telnet
+    - ntp
+    - htop
+  tags:
+    - bootstrap
+    - common
+
+- name: disable firewall
+  become: yes
+  become_method: sudo
+  service:
+    name: iptables
+    state: stopped
+    enabled: false
+  tags:
+    - bootstrap
+    - common
+    - firewall
+
+- name: download pip
+  become: yes
+  become_method: sudo
+  get_url: url=https://bootstrap.pypa.io/get-pip.py dest=./
+  tags:
+    - bootstrap
+    - common
+    - pip
+
+- name: install pip
+  become: yes
+  become_method: sudo
+  shell: python get-pip.py; rm get-pip.py
+  tags:
+    - bootstrap
+    - common
+    - pip
+
+- name: update setuptools and pip
+  become: yes
+  become_method: sudo
+  pip:
+    name: "{{ item.name }}"
+    executable: /usr/local/bin/pip
+    state: latest
+  with_items:
+    - name: pip
+    - name: setuptools
+  tags:
+    - bootstrap
+    - common
+    - pip
+
+- name: enable ntpd
+  become: yes
+  become_method: sudo
+  service:
+    name: ntpd
+    enabled: yes
+    state: started
+  tags:
+    - bootstrap
+    - common
+
+- name: configure selinux
+  become: yes
+  become_method: sudo
+  selinux:
+    policy: targeted
+    state: permissive
+  tags:
+    - security
+    - bootstrap
+    - common
+
+- include: rsyslog.yml
+- include: ulimit.yml
+- include: java8.yml
+- include: supervisor.yml
+

@@ -1,0 +1,69 @@
+---
+- name: set logrotate interval to daily
+  become: yes
+  become_method: sudo
+  lineinfile:
+    dest: /etc/logrotate.conf
+    regexp: '^weekly'
+    line: "daily"
+    backrefs: yes
+  tags:
+    - logrotate
+
+- name: set logrotate retention period to 7 days
+  become: yes
+  become_method: sudo
+  lineinfile:
+    dest: /etc/logrotate.conf
+    regexp: '^rotate 4'
+    line: "rotate 7"
+    backrefs: yes
+  tags:
+    - logrotate
+
+- name: copy component logrotate configurations
+  become: yes
+  become_method: sudo
+  copy:
+    src: "{{ item.0 }}"
+    dest: "/etc/logrotate.d/{{ item.0 }}"
+    mode: 0644
+    owner: root
+    group: root
+  when: item.1 or is_master
+  with_together:
+    - [ mesos, docker, docker-container, zookeeper ]
+    - [ true, true, true, false]
+  tags:
+    - docker
+    - logrotate
+    - mesos
+    - zookeeper
+
+- name: create component archives
+  become: yes
+  become_method: sudo
+  file:
+    path: "/var/log/{{ item.0 }}/archive"
+    mode: 0755
+    state: directory
+  when: item.1 or is_master
+  with_together:
+    - [ mesos, docker-container, zookeeper ]
+    - [ true, true, false ]
+  tags:
+    - docker
+    - logrotate
+    - mesos
+    - zookeeper
+
+- name: create docker archive
+  become: yes
+  become_method: sudo
+  file:
+    path: "/var/log/docker-archive"
+    mode: 0755
+    state: directory
+  tags:
+    - docker
+    - logrotate

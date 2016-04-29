@@ -1,0 +1,65 @@
+---
+
+- name: install supervisor
+  become: yes
+  become_method: sudo
+  command: /usr/local/bin/easy_install supervisor
+  tags:
+    - supervisor
+    - common
+
+- name: link supervisord
+  become: yes
+  become_method: sudo
+  file: path=/usr/bin/supervisord src=/usr/local/bin/supervisord state=link force=yes
+  tags:
+    - supervisor
+    - common
+
+- name: link supervisorctl
+  become: yes
+  become_method: sudo
+  file: path=/usr/bin/supervisorctl src=/usr/local/bin/supervisorctl state=link force=yes
+  tags:
+    - supervisor
+    - common
+
+- name: copy the config of supervisord
+  become: yes
+  become_method: sudo
+  template: src=./supervisord.conf.j2 dest=/etc/supervisord.conf
+  tags:
+    - supervisor
+    - common
+
+- name: copy the init.d file
+  become: yes
+  become_method: sudo
+  template: src=./supervisord.j2 dest=/etc/init.d/supervisord mode=0755
+  tags:
+    - supervisor
+    - common
+
+- name: start and enable it
+  become: yes
+  become_method: sudo
+  service: name=supervisord state=started enabled=true
+  tags:
+    - supervisor
+    - common
+
+- name: create the log folder
+  become: yes
+  become_method: sudo
+  file: path=/var/log/supervisord/ state=directory
+  tags:
+    - supervisor
+    - common
+
+- name: create the config folder
+  become: yes
+  become_method: sudo
+  file: path=/etc/supervisor/conf.d/ state=directory
+  tags:
+    - supervisor
+    - common

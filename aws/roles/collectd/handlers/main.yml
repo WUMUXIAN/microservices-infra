@@ -1,0 +1,9 @@
+---
+- name: restart collectd
+  become: yes
+  become_method: sudo
+  service:
+    name: collectd
+    state: restarted
+  tags:
+    - collectd

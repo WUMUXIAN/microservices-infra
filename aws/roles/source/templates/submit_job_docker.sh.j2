@@ -1,0 +1,25 @@
+function submit() {
+   SPARK_IMAGE=${SPARK_IMAGE:-"wumuxian/spark-mesos:1.6.0-0.27.0"}
+   SPARK_MASTER=${SPARK_MASTER:-"mesos://zk://{% for host in groups['mesos-master'] %}{{ hostvars[host].private_ipv4 }}:2181{% if not loop.last %},{% endif %}{% endfor %}/mesos"}
+   MYSQL_URL=common-services-shared.csqpckk18je6.us-east-1.rds.amazonaws.com
+   MYSQL_USER=${4}
+   MYSQL_PASSWORD=${5}
+
+   sudo docker run -it --rm \
+       --net=host \
+       -v /python:/python:ro \
+       -e SPARK_IMAGE=$SPARK_IMAGE \
+       -e SPARK_MASTER=$SPARK_MASTER \
+       $SPARK_IMAGE \
+       sh -c "bin/spark-submit \
+       --master ${SPARK_MASTER} \
+       --deploy-mode client \
+       /python/${1}.py ${2} ${3} ${MYSQL_URL} ${MYSQL_USER} ${MYSQL_PASSWORD}"
+}
+
+if [[ ! -z $5 ]]
+then
+   submit $@
+else
+   echo "Usage: . submit_job_docker.sh jobname start_date end_date mysql_user mysql_password, e.g. . submit_job process_kpi 2016031805 2016031808 mx gogamemx"
+fi

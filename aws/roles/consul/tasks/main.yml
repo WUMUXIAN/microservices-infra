@@ -1,0 +1,133 @@
+---
+- name: install consul
+  become: yes
+  become_method: sudo
+  unarchive: src=https://releases.hashicorp.com/consul/0.6.4/consul_0.6.4_linux_amd64.zip dest=/usr/bin copy=no
+  tags:
+    - consul 
+
+# Install consul-cli
+- include: consul-cli.yml
+
+# Install consul-template
+- include: consul-template.yml
+
+# Install consul-ui
+- name: create consul ui directory
+  become: yes
+  become_method: sudo
+  file: path=/usr/share/consul-ui state=directory
+  tags:
+    - consul
+
+- name: install consul ui
+  become: yes
+  become_method: sudo
+  unarchive: src=https://releases.hashicorp.com/consul/0.6.4/consul_0.6.4_web_ui.zip dest=/usr/share/consul-ui copy=no
+  tags:
+    - consul
+    - consul-ui
+
+- name: create consul conf path
+  become: yes
+  become_method: sudo
+  file: path=/etc/consul state=directory
+  tags:
+    - consul
+
+- name: create consul data path
+  become: yes
+  become_method: sudo
+  file: path=/var/lib/consul state=directory
+  tags:
+    - consul
+
+- name: configure consul
+  become: yes
+  become_method: sudo
+  template: src={{ item }}.j2 dest=/etc/consul/{{ item }} force=yes
+  with_items:
+    - consul.json
+    - acl.json
+  tags:
+    - consul
+
+# make consul a supervisor program
+- name: copy the consul supervisor configuration file
+  become: yes
+  become_method: sudo
+  template: src=./consul-supervisor.conf.j2 dest=/etc/supervisor/conf.d/consul.conf force=yes
+  tags:
+    - consul
+
+- name: make the consul supervisor log directory
+  become: yes
+  become_method: sudo
+  file: path=/var/log/supervisord/consul/ state=directory
+  tags:
+    - consul
+
+- name: reread supervisor
+  become: yes
+  become_method: sudo
+  shell: /usr/local/bin/supervisorctl reread
+  tags:
+    - consul
+
+- name: update supervisor
+  become: yes
+  become_method: sudo
+  shell: /usr/local/bin/supervisorctl update
+  notify:
+    - restart consul
+  tags:
+    - consul
+
+- name: register docker with consul
+  become: yes
+  become_method: sudo
+  copy:
+    src: docker-service.json
+    dest: /etc/consul
+    force: yes
+  notify:
+    - reload consul
+  tags:
+    - consul
+
+- name: install scripts
+  become: yes
+  become_method: sudo
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin/
+    mode: 0755
+    force: yes
+  with_items:
+    - consul-wait-for-leader.sh
+    - consul-rolling-restart.sh
+    - check-service-active
+  tags:
+    - consul
+
+# Give consul time to elect a leader
+- name: wait for leader
+  command: /usr/local/bin/consul-wait-for-leader.sh
+  tags:
+    - consul
+
+- meta: flush_handlers
+  tags:
+    - consul
+
+- name: create secure acl
+  become: yes
+  become_method: sudo
+  run_once: yes
+  command: consul-cli acl-update --token={{ consul_acl_master_token }} --name="Mantl Secure Token" --rule='key:secure:write' --rule='service::write' {{ consul_acl_secure_token }}
+  tags:
+    - consul
+    - acl
+
+- include: acl.yml
+- include: nginx_proxy.yml

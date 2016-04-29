@@ -1,0 +1,7 @@
+[program:consul]
+command=consul agent -config-dir=/etc/consul
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisord/consul/err.log
+stdout_logfile=/var/log/supervisord/consul/out.log
+priority=998

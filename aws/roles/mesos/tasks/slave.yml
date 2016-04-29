@@ -1,0 +1,61 @@
+---
+
+- name: configure mesos slave
+  become: yes
+  become_method: sudo
+  template: src=./{{ item }}.j2 dest=/etc/mesos-slave/{{ item }} force=yes
+  with_items:
+    - ip
+    - port
+    - containerizers
+    - attributes
+    - docker_socket
+    - resources
+  tags:
+    - mesos
+    - mesos-slave-config
+
+- name: set mesos slave hostname
+  become: yes
+  become_method: sudo
+  command: cp /etc/mesos-slave/ip /etc/mesos-slave/hostname
+  tags:
+    - mesos
+
+- name: disable mesos master 
+  become: yes
+  become_method: sudo
+  lineinfile: line="manual" dest=/etc/init/mesos-master.override create=yes force=yes
+  tags:
+    - mesos
+
+- name: start mesos slave 
+  become: yes
+  become_method: sudo
+  command: /sbin/start mesos-slave
+  ignore_errors: yes
+  tags:
+    - mesos
+
+- name: install collectd mesos-slave plugin
+  become: yes
+  become_method: sudo
+  copy:
+    src: mesos-slave.py
+    dest: /usr/share/collectd/plugins
+    mode: 0444
+  tags:
+    - mesos
+    - collectd
+
+- name: configure collectd mesos-slave plugin
+  become: yes
+  become_method: sudo
+  template:
+    src: mesos-slave.conf.j2
+    dest: /etc/collectd.d/mesos-slave.conf
+  notify:
+    - restart collectd
+  tags:
+    - mesos
+    - collectd

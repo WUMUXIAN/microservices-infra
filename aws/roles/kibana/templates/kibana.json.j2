@@ -1,0 +1,28 @@
+{
+  "id": "kibana",
+  "cpus": {{ kibana_cpu }},
+  "mem": {{ kibana_mem }},
+  "instances": 1,
+  "container": {
+    "type": "DOCKER",
+    "volumes": [
+    {
+      "containerPath": "/opt/kibana/config/kibana.yml",
+      "hostPath": "/etc/kibana/kibana.yml",
+      "mode": "RW"
+    }],
+    "docker": {
+      "image": "{{ kibana_image }}:{{ kibana_image_tag }}",
+      "network": "BRIDGE",
+      "portMappings": [{
+        "containerPort": 5601,
+        "hostPort": 0,
+        "protocol": "tcp"
+      }]
+    }
+  },
+  "labels": {
+    "traefik.backend": "kibana"
+  },
+  "constraints": [["hostname", "CLUSTER", "{{ hostvars[groups['mesos-slave'].1].private_ipv4 }}"]]
+}

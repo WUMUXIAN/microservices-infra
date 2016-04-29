@@ -1,0 +1,27 @@
+---
+
+consul_dc: gogame
+consul_dc_group: dc={{ consul_dc }}
+consul_servers_group: mesos-master
+consul_log_level: "warn"
+consul_is_server: "{{ consul_servers_group in group_names }}"
+consul_advertise: "{{ private_ipv4 }}"
+consul_retry_join: "{% for host in groups[consul_servers_group] %}\"{{ host }}\"{% if not loop.last %}, {% endif %}{% endfor %}"
+consul_bootstrap_expect: "{{ groups[consul_servers_group] | length }}"
+consul_disable_remote_exec: yes
+consul_verify_incoming: false
+consul_verify_outgoing: false
+consul_gossip_key: 4RM/FClLa0E4MVGyQDcsLA==
+consul_acl_agent_token: 6bd276c1-7c4f-41a7-be21-5b6a5b6b00a2
+consul_acl_marathon_token: e237f786-9328-466a-b97d-3067533298b2
+consul_acl_master_token: c54ac130-d8f4-4df6-948c-b4e5c9c26679
+consul_acl_secure_token: f42121af-f0f3-479b-bb6a-6ebb6cb56787
+consul_acl_vault_token: 9a36a879-05f9-430e-9864-d3d6fd5ba74b
+consul_acl_datacenter: "{{ consul_dc }}"
+consul_acl_default_policy: "deny"
+consul_acl_down_policy: "allow"
+consul_dns_domain: consul
+consul_allow_stale: true
+consul_max_stale: 5s
+do_consul_ssl: false
+do_consul_auth: false

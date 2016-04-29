@@ -1,0 +1,57 @@
+---
+
+- name: configure mesos-master
+  become: yes
+  become_method: sudo
+  template: src=./{{ item }}.j2 dest=/etc/mesos-master/{{ item }} force=yes
+  with_items:
+    - ip
+    - quorum
+    - cluster
+  tags:
+    - mesos
+
+- name: set mesos master hostname
+  become: yes
+  become_method: sudo
+  command: cp /etc/mesos-master/ip /etc/mesos-master/hostname
+  tags:
+    - mesos
+
+- name: disable mesos slave 
+  become: yes
+  become_method: sudo
+  lineinfile: line="manual" dest=/etc/init/mesos-slave.override create=yes force=yes
+  tags:
+    - mesos
+
+- name: start mesos master 
+  become: yes
+  become_method: sudo
+  command: /sbin/start mesos-master
+  ignore_errors: yes
+  tags:
+    - mesos 
+
+- name: install collectd mesos-master plugin
+  become: yes
+  become_method: sudo
+  copy:
+    src: mesos-master.py
+    dest: /usr/share/collectd/plugins
+    mode: 0444
+  tags:
+    - mesos
+    - collectd
+
+- name: configure collectd mesos-master plugin
+  become: yes
+  become_method: sudo
+  template:
+    src: mesos-master.conf.j2
+    dest: /etc/collectd.d/mesos-master.conf
+  notify:
+    - restart collectd
+  tags:
+    - mesos
+    - collectd

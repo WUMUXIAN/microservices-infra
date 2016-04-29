@@ -1,0 +1,56 @@
+---
+
+# Tasks to install zookeeper, only mesos masters will have this role
+
+- include: zookeeper.yml
+
+- name: configure zookeeper ID
+  become: yes
+  become_method: sudo
+  become_user: zookeeper
+  shell: zookeeper-server-initialize --myid={{ zookeeper_id }} --force
+  tags:
+    - zookeeper
+
+- name: update zookeeper configuration
+  become: yes
+  become_method: sudo
+  template: src=./zoo.cfg.j2 dest=/etc/zookeeper/conf/zoo.cfg force=yes
+  tags:
+    - zookeeper
+
+- name: start zookeeper
+  become: yes
+  become_method: sudo
+  service: name=zookeeper-server state=started enabled=yes
+  tags:
+    - zookeeper
+
+- name: install zookeeper scripts
+  become: yes
+  become_method: sudo
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin
+    mode: 0755
+  with_items:
+    - zookeeper_check.sh
+    - zookeeper-wait-for-listen.sh
+  tags:
+    - zookeeper
+
+- name: generate zookeeper consul services
+  become: yes
+  become_method: sudo
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: zk-consul.json.j2
+      dest: /etc/consul/zk-consul.json
+  notify:
+    - reload consul
+  tags:
+    - zookeeper
+
+- include: collectd.yml

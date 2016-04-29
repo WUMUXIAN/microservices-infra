@@ -1,0 +1,55 @@
+---
+- name: deploy nginx template
+  become: yes
+  become_method: sudo
+  template:
+    src: consul.nginx.j2
+    dest: /etc/consul/consul.nginx
+  tags:
+    - consul
+    - nginx-consul
+
+- name: deploy nginx service
+  become: yes
+  become_method: sudo
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0755
+  with_items:
+    - src: nginx-consul.j2
+      dest: /etc/init.d/nginx-consul
+    - src: nginx-consul.env.j2
+      dest: /etc/default/nginx-consul.env
+  tags:
+    - consul
+    - nginx-consul
+
+- name: install nginx template
+  become: yes
+  become_method: sudo
+  run_once: yes
+  command: consul-cli kv-write --token={{ consul_acl_secure_token }} secure/service/nginx/templates/consul @/etc/consul/consul.nginx
+  tags:
+    - consul
+    - nginx-consul
+
+- name: install nginx admin password
+  become: yes
+  become_method: sudo
+  run_once: yes
+  command: consul-cli kv-write  --token={{ consul_acl_secure_token }} secure/service/nginx/auth/users/admin '{{ nginx_admin_password_encrypted }}'
+  when: nginx_admin_password_encrypted is defined
+  tags:
+    - consul
+    - nginx-consul
+
+- name: enable nginx-consul
+  become: yes
+  become_method: sudo
+  service: name=nginx-consul enabled=yes state=started
+  ignore_errors: yes
+  tags:
+    - consul
+    - nginx-consul
+

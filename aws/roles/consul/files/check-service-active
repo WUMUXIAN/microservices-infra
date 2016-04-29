@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -eo pipefail
+
+usage() {
+    echo "usage: ${0##*/} [ service ]"
+    exit 1
+}
+
+check() {
+	status=$(sudo service $1 status)
+	if [[ $status =~ "running" ]]; 
+	then 
+		exit 0; 
+	else 
+		exit 2; 
+	fi
+}
+
+main() {
+    [[ -z "$1" ]] && usage || check "$1"
+}
+
+main "$@"
+
+# EOF

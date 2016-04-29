@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# chkconfig: 345 80 80
+# description: nginx-consul is used to brige consul using nginx
+# processname: nginx-consul
+# pidfile: /var/run/nginx-consul.pid
+
+. /etc/init.d/functions
+
+PIDFILE=/var/run/nginx-consul.pid
+
+start() {
+        echo -n "Starting nginx-consul: "
+        if [ -f $PIDFILE ]; then
+                PID=`cat $PIDFILE`
+                echo nginx-consul already running: $PID
+                exit 2;
+        else
+                PID=$(/usr/bin/docker run \
+				    -d \
+				    --name=nginx-consul \
+				    --net=host \
+				    --privileged=true \
+				    -v /etc/nginx/ssl:/etc/nginx/ssl:ro \
+				    --env-file=/etc/default/nginx-consul.env \
+				    {{ consul_nginx_image }}:{{ consul_nginx_image_tag }}) 
+                RETVAL=$?
+                echo
+                echo $PID >> $PIDFILE
+                [ $RETVAL -eq 0 ] && touch /var/lock/subsys/nginx-consul
+                return $RETVAL
+        fi
+
+}
+
+stop() {
+        echo -n "Shutting down nginx-consul: "
+        echo
+        /usr/bin/docker rm -f nginx-consul
+        rm $PIDFILE
+        echo
+        rm -f /var/lock/subsys/nginx-consul
+        return 0
+}
+
+status() {
+        if [ -f $PIDFILE ]; then
+                echo nginx-consul is running
+        else
+                echo nginx-consul is stopped
+        fi
+}
+
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage:  {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+exit $?

@@ -1,0 +1,120 @@
+---
+
+- name: install marathon
+  become: yes
+  become_method: sudo
+  yum: pkg=marathon state=present
+  tags:
+    - marathon
+
+- name: create consul acl for marathon
+  become: yes
+  become_method: sudo
+  run_once: yes
+  command: consul-cli acl-update --token={{ consul_acl_master_token }} --name="Marathon ACL Token" --rule='key:marathon:write' {{ consul_acl_marathon_token }}
+  tags:
+    - marathon
+
+- name: install wait script
+  become: yes
+  become_method: sudo
+  template:
+    src: marathon-wait-for-listen.sh.j2
+    dest: /usr/local/bin/marathon-wait-for-listen.sh
+    mode: 0755
+  tags:
+    - marathon
+
+- name: wait for zookeeper service to be registered
+  become: yes
+  become_method: sudo
+  wait_for:
+    host: "{{ marathon_zk_dns }}"
+    port: "{{ marathon_zk_port }}"
+    delay: 10
+    timeout: 300
+    state: present
+  tags:
+    - marathon
+
+- name: wait for zookeeper to listen
+  become: yes
+  become_method: sudo
+  command: "/usr/local/bin/zookeeper-wait-for-listen.sh localhost"
+
+- name: create marathon conf directory
+  become: yes
+  become_method: sudo
+  file: path=/etc/marathon/conf state=directory
+  tags:
+    - marathon
+
+- name: create marathon apps directory
+  become: yes
+  become_method: sudo
+  file:
+    dest: /etc/marathon/apps
+    state: directory
+    mode: 0600
+  tags:
+    - marathon
+
+- name: configure hostname
+  become: yes
+  become_method: sudo
+  template: src=./{{ item }}.j2 dest=/etc/marathon/conf/{{ item }} force=yes
+  with_items:
+    - hostname
+    - event_subscriber
+  tags:
+    - marathon
+    - marathon-config
+
+- name: start marathon
+  become: yes
+  become_method: sudo
+  command: /sbin/start marathon
+  ignore_errors: yes
+  tags:
+    - marathon
+
+- name: generate marathon consul service
+  become: yes
+  become_method: sudo
+  template:
+    src: marathon-consul.j2
+    dest: "/etc/consul/marathon.json"
+  notify:
+    - reload consul
+  tags:
+    - marathon
+
+- meta: flush_handlers
+  tags:
+    - marathon
+
+- name: install collectd marathon plugin
+  become: yes
+  become_method: sudo
+  copy:
+    src: marathon-collectd-plugin.py
+    dest: /usr/share/collectd/plugins/marathon.py
+    mode: 0444
+  tags:
+    - marathon
+    - collectd
+
+- name: configure collectd marathon plugin
+  become: yes
+  become_method: sudo
+  template:
+    src: marathon-collectd-plugin.conf.j2
+    dest: /etc/collectd.d/marathon.conf
+  notify:
+    - restart collectd
+  tags:
+    - marathon
+    - collectd
+
+- include: jobs.yml
+

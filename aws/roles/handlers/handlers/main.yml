@@ -1,0 +1,23 @@
+---
+
+- name: wait for consul to listen
+  become: yes
+  become_method: sudo
+  command: /usr/local/bin/consul-wait-for-leader.sh
+
+- name: reload consul
+  become: yes
+  become_method: sudo
+  shell: consul reload
+
+- name: reload consul-template
+  become: yes
+  become_method: sudo
+  command: /usr/local/bin/supervisorctl restart consul-template
+
+- name: restart collectd
+  become: yes
+  become_method: sudo
+  service:
+    name: collectd
+    state: restarted

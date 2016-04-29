@@ -1,0 +1,16 @@
+---
+
+- include: mesos.yml
+
+- name: configure mesos zk
+  become: yes
+  become_method: sudo
+  template: src=./zk.j2 dest=/etc/mesos/zk force=yes
+  tags:
+    - mesos
+
+- include: master.yml
+  when: mesos_mode == "master"
+
+- include: slave.yml
+  when: mesos_mode == "slave"

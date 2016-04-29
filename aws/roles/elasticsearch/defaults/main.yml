@@ -1,0 +1,15 @@
+---
+consul_dns_domain: consul
+do_mesos_auth: no
+elasticsearch_ram: 1024
+elasticsearch_executor_ram: 1024
+elasticsearch_disk: 5120
+elasticsearch_cpu: 0.1
+elasticsearch_executor_cpu: 0.1
+elasticsearch_nodes: 1
+elasticsearch_cluster_name: "GoGame"
+
+framework_version: "0.7.1"
+framework_name: "elasticsearch"
+framework_ui_port: 31100
+framework_use_docker: true

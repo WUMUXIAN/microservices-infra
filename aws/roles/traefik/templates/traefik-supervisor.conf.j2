@@ -1,0 +1,7 @@
+[program:traefik]
+command=/usr/bin/traefik -c /etc/traefik/traefik.toml
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisord/traefik/err.log
+stdout_logfile=/var/log/supervisord/traefik/out.log
+priority=995

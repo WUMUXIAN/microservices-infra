@@ -1,0 +1,29 @@
+---
+- name: create json files for jobs
+  become: yes
+  become_method: sudo
+  template:
+    src: '{{ item }}.json.j2'
+    dest: /etc/marathon/apps/{{ item }}.json
+    mode: 0600
+  with_items:
+    - mesos-consul
+    - marathon-consul 
+  tags:
+    - marathon
+    - marathon-jobs
+
+- name: start jobs
+  run_once: true
+  become: yes
+  become_method: sudo
+  command: 'curl -X PUT -d@/etc/marathon/apps/{{ item }}.json -H "Content-Type: application/json" http://localhost:8080/v2/apps/{{ item }}'
+  changed_when: false
+  failed_when: "'deploymentId' not in result.stdout"
+  register: result
+  with_items:
+    - mesos-consul
+    - marathon-consul
+  tags:
+    - marathon
+    - marathon-jobs

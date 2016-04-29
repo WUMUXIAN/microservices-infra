@@ -1,0 +1,8 @@
+---
+
+kibana_cpu: 0.5
+kibana_mem: 256
+kibana_image: kibana
+kibana_image_tag: 4.3.1
+kibana_build_num: 9517
+consul_dns_domain: consul

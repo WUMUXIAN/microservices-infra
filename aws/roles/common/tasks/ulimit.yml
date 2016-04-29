@@ -1,0 +1,24 @@
+---
+
+- name: configure the limits
+  become: yes
+  become_method: sudo
+  blockinfile:
+    dest: /etc/security/limits.conf
+    block: |
+      * hard nproc 1048576
+      * soft nproc 1048576
+      * soft nofile 1048576
+      * hard nofile 1048576
+  tags:
+    - ulimit
+    - common
+
+- name: configure the limits for current session
+  become: yes
+  become_method: sudo
+  become_user: root
+  shell: ulimit -n 1048576
+  tags:
+    - ulimit
+    - common

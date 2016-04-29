@@ -1,0 +1,6 @@
+---
+
+- name: restart dnsmasq
+  become: yes
+  become_method: sudo
+  service: name=dnsmasq state=restarted

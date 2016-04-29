@@ -1,0 +1,85 @@
+---
+- name: download traefik
+  become: yes
+  become_method: sudo
+  get_url:
+    url: https://github.com/containous/traefik/releases/download/v1.0.0-beta.453/traefik_linux-amd64
+    dest: /usr/bin/traefik
+    force: yes
+  tags:
+    - traefik
+
+- name: make traefik runnable
+  become: yes
+  become_method: sudo
+  file:
+    path: /usr/bin/traefik
+    mode: u+x
+  tags:
+    - traefik
+
+- name: ensure the configuration directory exist
+  become: yes
+  become_method: sudo
+  file: path=/etc/traefik state=directory
+  tags:
+    - traefik
+
+- name: ensure the log directory exist
+  become: yes
+  become_method: sudo
+  file: path=/var/log/supervisord/traefik state=directory
+  tags:
+    - traefik
+
+- name: configure traefik
+  become: yes
+  become_method: sudo
+  template:
+    src: traefik.toml.j2
+    dest: /etc/traefik/traefik.toml
+    mode: 0644
+    backup: yes
+  notify:
+    - restart traefik
+  tags:
+    - traefik
+
+- name: add traefik as supervisord program
+  become: yes
+  become_method: sudo
+  template: src=traefik-supervisor.conf.j2 dest=/etc/supervisor/conf.d/traefik.conf force=yes
+  tags:
+    - traefik
+
+- name: reread supervisor
+  become: yes
+  become_method: sudo
+  shell: /usr/local/bin/supervisorctl reread
+  tags:
+    - traefik
+
+- name: update supervisor
+  become: yes
+  become_method: sudo
+  shell: /usr/local/bin/supervisorctl update
+  tags:
+    - traefik
+
+- name: start traefik
+  become: yes
+  become_method: sudo
+  shell: /usr/local/bin/supervisorctl restart traefik
+  tags:
+    - traefik
+
+- name: generate traefik consul service
+  become: yes
+  become_method: sudo
+  copy:
+    src: 'traefik-consul.json'
+    dest: '/etc/consul/traefik.json'
+  notify:
+    - reload consul
+  tags:
+    - traefik

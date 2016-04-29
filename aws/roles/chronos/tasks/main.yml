@@ -1,0 +1,93 @@
+---
+
+- name: create json file for chronos job
+  become: yes
+  become_method: sudo
+  template:
+    src: '{{ item }}.json.j2'
+    dest: /etc/marathon/apps/{{ item }}.json
+    mode: 0600
+  with_items:
+    - chronos    
+  tags:
+    - chronos
+
+- name: start chronos through marathon
+  run_once: true
+  become: yes
+  become_method: sudo
+  command: 'curl -X PUT -d@/etc/marathon/apps/{{ item }}.json -H "Content-Type: application/json" http://localhost:8080/v2/apps/{{ item }}'
+  changed_when: false
+  failed_when: "'deploymentId' not in result.stdout"
+  register: result
+  with_items:
+    - chronos
+  tags:
+    - chronos
+
+# - name: install chronos
+#   become: yes
+#   become_method: sudo
+#   yum: pkg=chronos state=present
+#   tags:
+#     - chronos
+
+# - name: create chronos directory
+#   become: yes
+#   become_method: sudo
+#   file: path=/etc/chronos/conf state=directory
+#   tags:
+#     - chronos
+
+# - name: configure hostname
+#   become: yes
+#   become_method: sudo
+#   template: src=./hostname.j2 dest=/etc/chronos/conf/hostname force=yes
+#   tags:
+#     - chronos
+
+# - name: configure port
+#   become: yes
+#   become_method: sudo
+#   template: src=./http_port.j2 dest=/etc/chronos/conf/http_port force=yes
+#   tags:
+#     - chronos
+
+# - name: wait for zookeeper service to be registered
+#   become: yes
+#   become_method: sudo
+#   wait_for:
+#     host: "{{ chronos_zk_dns }}"
+#     port: "{{ chronos_zk_port }}"
+#     delay: 10
+#     timeout: 300
+#     state: present
+#   tags:
+#     - chronos
+
+# - name: wait for zookeeper to listen
+#   become: yes
+#   become_method: sudo
+#   command: "/usr/local/bin/zookeeper-wait-for-listen.sh localhost"
+#   tags:
+#     - chronos
+
+# - name: start chronos
+#   become: yes
+#   become_method: sudo
+#   command: /sbin/start chronos
+#   ignore_errors: yes
+#   tags:
+#     - chronos
+
+# - name: generate chronos consul service
+#   become: yes
+#   become_method: sudo
+#   template:
+#     src: chronos-consul.j2
+#     dest: "/etc/consul/chronos.json"
+#   notify:
+#     - reload consul
+#   tags:
+#     - chronos
+

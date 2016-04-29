@@ -1,0 +1,34 @@
+---
+
+consul_dns_domain: consul
+marathon_zk_auth: "{% if zk_marathon_user_secret is defined %}{{ zk_marathon_user }}:{{ zk_marathon_user_secret }}@{% endif %}"
+marathon_zk_dns: "zookeeper.service.{{ consul_dns_domain }}"
+marathon_zk_port: 2181
+marathon_zk_chroot: marathon
+marathon_zk_connect: "zk://{{ marathon_zk_auth}}{{ marathon_zk_dns }}:{{ marathon_zk_port }}/{{ marathon_zk_chroot }}"
+
+marathon_zk_acl_world: "world:anyone:cdrwa"
+marathon_zk_acl: "{% if zk_marathon_user_secret is defined %}digest:{{ zk_marathon_user }}:{{ zk_marathon_user_secret_digest}}:cdraw{% endif  %}"
+marathon_mesos: "zk://zookeeper.service.{{ consul_dns_domain }}:2181/mesos"
+
+marathon_zk_acl_cmd: "zookeepercli -servers localhost:{{ marathon_zk_port }} -auth_usr='super' -auth_pwd='{{ zk_super_user_secret }}' -force -c setacl /{{ marathon_zk_chroot }} '{{ marathon_zk_acl_world }},{{ marathon_zk_acl }}'"
+
+marathon_http_credentials: ""
+marathon_keystore_path: ""
+marathon_keystore_password: ""
+
+# framework authentication
+marathon_principal: marathon
+marathon_secret: ""
+
+consul_acl_master_token: c54ac130-d8f4-4df6-948c-b4e5c9c26679
+consul_acl_marathon_token: e237f786-9328-466a-b97d-3067533298b2
+
+# jobs
+mesos_consul_image: ciscocloud/mesos-consul
+mesos_consul_image_tag: v0.3.2
+mesos_consul_refresh: "7s"
+marathon_consul_image: ciscocloud/marathon-consul
+marathon_consul_image_tag: 0.2
+mantl_api_image: ciscocloud/mantl-api
+mantl_api_image_tag: 0.1.5
