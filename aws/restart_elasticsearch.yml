@@ -1,0 +1,22 @@
+---
+
+- hosts: mesos
+  gather_facts: yes
+  pre_tasks:
+    - name: destroy marathon job
+      run_once: true
+      become: yes
+      become_method: sudo
+      shell: "curl -X DELETE -H \"Content-Type: application/json\" marathon.service.consul:8080/v2/apps/elasticsearch"
+    - name: bring down the framework
+      run_once: true
+      become: yes
+      become_method: sudo
+      shell: curl -X POST http://leader.mesos.service.consul:5050/master/teardown -d 'frameworkId={{ frameworkId }}'
+    - name: clear zookeeper status for elasticsearch
+      run_once: true
+      become: yes
+      become_method: sudo
+      command: '/usr/lib/zookeeper/bin/zkCli.sh rmr /elasticsearch'
+  roles:
+    - elasticsearch

@@ -86,6 +86,14 @@
     - docker
     - docker-clearer
 
+- name: add cron job to clear dangling images every 1 day
+  become: yes
+  become_method: sudo
+  cron: name="docker-image-clearer" hour="0" job="docker rmi $(docker images -q --filter 'dangling=true')"
+  tags:
+    - docker
+    - docker-clearer
+
 - name: create docker group
   become: yes
   become_method: sudo

@@ -1,0 +1,17 @@
+---
+
+- hosts: mesos-slave
+  gather_facts: yes
+  tasks:
+    - name: stop mesos slaves
+      become: yes
+      become_method: sudo
+      command: "/sbin/stop mesos-slave"
+    - name: remove cache
+      become: yes
+      become_method: sudo
+      file: path=/tmp/mesos/meta/slaves/latest state=absent
+    - name: start mesos slaves
+      become: yes
+      become_method: sudo
+      command: "/sbin/start mesos-slave"

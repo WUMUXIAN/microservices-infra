@@ -1,5 +1,12 @@
 ---
 
+- name: copy mesos slave modules json file
+  become: yes
+  become_method: sudo
+  copy: src=./mesos-slave-modules.json dest=/etc/mesos-slave-modules.json force=yes
+  tags:
+    - mesos-slave-config
+
 - name: configure mesos slave
   become: yes
   become_method: sudo
@@ -11,6 +18,8 @@
     - attributes
     - docker_socket
     - resources
+    - modules
+    - container_logger
   tags:
     - mesos
     - mesos-slave-config

@@ -1,5 +1,5 @@
 WEAVE_OPTIONS=--no-dns
-WEAVE_PEERS="{%- for host in groups['all'] -%}{%- if host != inventory_hostname -%}{{ hostvars[host].private_ipv4 }} {% if loop.last %}
+WEAVE_PEERS="{%- for host in groups['mesos'] -%}{%- if host != inventory_hostname -%}{{ hostvars[host].private_ipv4 }} {% if loop.last %}
         
 {% endif %}
 {%- endif -%}

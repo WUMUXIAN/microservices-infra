@@ -1,0 +1,18 @@
+{
+   "libraries": [
+     {
+       "file": "/usr/lib/liblogrotate_container_logger.so",
+       "modules": [
+         {
+           "name": "org_apache_mesos_LogrotateContainerLogger",
+           "parameters": [
+             {
+               "key": "launcher_dir",
+               "value": "/usr/libexec/mesos"
+             }
+           ]
+         }
+       ]
+     }
+   ]
+ }

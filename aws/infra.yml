@@ -5,6 +5,14 @@
   roles:
     - common
     - docker
+    - weave
+    - collectd
+    - logrotate
+    - consul
+    - elasticsearch
+    - logstash
+    - kibana
+    - dnsmasq
 
 - hosts: mesos-master
   vars:
@@ -13,9 +21,15 @@
     - zookeeper
     - mesos
     - marathon
+    - chronos
 
 - hosts: mesos-slave
   vars:
     mesos_mode: slave
   roles:
     - mesos
+    - source
+
+- hosts: proxy
+  roles:
+    - traefik
