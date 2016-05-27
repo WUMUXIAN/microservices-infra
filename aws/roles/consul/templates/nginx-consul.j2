@@ -9,46 +9,76 @@
 
 PIDFILE=/var/run/nginx-consul.pid
 
+run() {
+    /usr/bin/docker run \
+        -d \
+        --name=nginx-consul \
+        --net=host \
+        --privileged=true \
+        -v /etc/nginx/ssl:/etc/nginx/ssl:ro \
+        --env-file=/etc/default/nginx-consul.env \
+        {{ consul_nginx_image }}:{{ consul_nginx_image_tag }}
+    RETVAL=$?
+    PID=$(docker inspect -f '{% raw %}{{ .Id }}{% endraw %}' nginx-consul)
+    echo
+    if [ -f $PIDFILE ]; then
+        rm $PIDFILE
+    fi
+    echo $PID >> $PIDFILE
+    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/nginx-consul
+    return $RETVAL
+}
+
 start() {
-        echo -n "Starting nginx-consul: "
-        if [ -f $PIDFILE ]; then
-                PID=`cat $PIDFILE`
+    echo -n "Starting nginx-consul: "
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        RUNNING=`docker inspect -f '{% raw %}{{ .State.Running }}{% endraw %}' $PID`
+        EXISTED=$?
+        if [ $EXISTED -eq 0 ]; then
+            if [ $RUNNING = "true" ]; then
                 echo nginx-consul already running: $PID
                 exit 2;
+            else
+                /usr/bin/docker rm -f nginx-consul
+                run                        
+            fi
         else
-                PID=$(/usr/bin/docker run \
-				    -d \
-				    --name=nginx-consul \
-				    --net=host \
-				    --privileged=true \
-				    -v /etc/nginx/ssl:/etc/nginx/ssl:ro \
-				    --env-file=/etc/default/nginx-consul.env \
-				    {{ consul_nginx_image }}:{{ consul_nginx_image_tag }}) 
-                RETVAL=$?
-                echo
-                echo $PID >> $PIDFILE
-                [ $RETVAL -eq 0 ] && touch /var/lock/subsys/nginx-consul
-                return $RETVAL
+            run
         fi
+    else
+        run
+    fi
 
 }
 
 stop() {
-        echo -n "Shutting down nginx-consul: "
-        echo
-        /usr/bin/docker rm -f nginx-consul
-        rm $PIDFILE
-        echo
-        rm -f /var/lock/subsys/nginx-consul
-        return 0
+    echo -n "Shutting down nginx-consul: "
+    echo
+    /usr/bin/docker rm -f nginx-consul
+    rm $PIDFILE
+    echo
+    rm -f /var/lock/subsys/nginx-consul
+    return 0
 }
 
 status() {
-        if [ -f $PIDFILE ]; then
-                echo nginx-consul is running
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        RUNNING=`docker inspect -f '{% raw %}{{ .State.Running }}{% endraw %}' $PID`
+        EXISTED=$?
+        if [ $EXISTED -eq 0 ]; then
+            if [ $RUNNING = "true" ]; then
+                echo nginx-consul is running: $PID                        
+            else
+                echo nginx-consul is stopped                        
+            fi
         else
-                echo nginx-consul is stopped
+            echo nginx-consul is stopped
         fi
+    else
+        echo nginx-consul is stopped
+    fi
 }
 
 

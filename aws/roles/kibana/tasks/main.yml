@@ -45,6 +45,7 @@
     mode: a+x
   tags:
     - kibana
+    - kibana-service
 
 - name: deploy kibana consul-template configuration
   become: yes

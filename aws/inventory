@@ -10,6 +10,8 @@ mesos-slave3
 
 [proxy]
 mesos-slave3
+mesos-slave2
+mesos-slave1
 
 [mesos:children]
 mesos-master

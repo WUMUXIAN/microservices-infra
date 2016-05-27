@@ -1,0 +1,18 @@
+---
+# This playbook aims to upgrade docker from 1.9.0 to 1.10.3
+- hosts: mesos
+  gather_facts: yes
+  tasks:
+    - name: stop docker 
+      become: yes
+      become_method: sudo
+      service: name=docker state=stopped
+    - name: uninstall current docker
+      become: yes
+      become_method: sudo
+      yum: name=docker-engine state=absent
+    - name: remove repo
+      become: yes
+      become_method: sudo
+      file: path=/etc/yum.repo.d/docker state=absent
+

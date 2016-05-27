@@ -9,43 +9,73 @@
 
 PIDFILE=/var/run/kibana.pid
 
+run() {
+    /usr/bin/docker run -d \
+        --name=kibana \
+        --volume=/etc/kibana/kibana.yml:/opt/kibana/config/kibana.yml \
+        -p 5601:5601 \
+        {{ kibana_image }}:{{ kibana_image_tag }}
+    RETVAL=$?
+    PID=$(docker inspect -f '{% raw %}{{ .Id }}{% endraw %}' kibana)
+    echo
+    if [ -f $PIDFILE ]; then
+        rm $PIDFILE
+    fi
+    echo $PID >> $PIDFILE
+    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/kibana
+    return $RETVAL
+}
+
 start() {
-        echo -n "Starting kibana: "
-        if [ -f $PIDFILE ]; then
-                PID=`cat $PIDFILE`
+    echo -n "Starting kibana: "
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        RUNNING=`docker inspect -f '{% raw %}{{ .State.Running }}{% endraw %}' $PID`
+        EXISTED=$?
+        if [ $EXISTED -eq 0 ]; then
+            if [ $RUNNING = "true" ]; then
                 echo kibana already running: $PID
                 exit 2;
+            else
+                /usr/bin/docker rm -f kibana
+                run                        
+            fi
         else
-                PID=$(/usr/bin/docker run -d \
-                --name=kibana \
-                --volume=/etc/kibana/kibana.yml:/opt/kibana/config/kibana.yml \
-                -p 5601:5601 \
-                {{ kibana_image }}:{{ kibana_image_tag }})   
-                RETVAL=$?
-                echo
-                echo $PID >> $PIDFILE
-                [ $RETVAL -eq 0 ] && touch /var/lock/subsys/kibana
-                return $RETVAL
+            run
         fi
+    else
+        run
+    fi
 
 }
 
 stop() {
-        echo -n "Shutting down kibana: "
-        echo        
-        /usr/bin/docker rm -f kibana
-        rm $PIDFILE
-        echo
-        rm -f /var/lock/subsys/kibana
-        return 0
+    echo -n "Shutting down kibana: "
+    echo        
+    /usr/bin/docker rm -f kibana
+    rm $PIDFILE
+    echo
+    rm -f /var/lock/subsys/kibana
+    return 0
 }
 
 status() {
-        if [ -f $PIDFILE ]; then
-                echo kibana is running
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        RUNNING=`docker inspect -f '{% raw %}{{ .State.Running }}{% endraw %}' $PID`
+        EXISTED=$?
+        if [ $EXISTED -eq 0 ]; then
+            if [ $RUNNING = "true" ]; then
+                echo kibana is running: $PID                        
+            else
+                echo kibana is stopped                        
+            fi
         else
-                echo kibana is stopped
+            echo kibana is stopped
         fi
+    else
+        echo kibana is stopped
+    fi
 }
 
 case "$1" in

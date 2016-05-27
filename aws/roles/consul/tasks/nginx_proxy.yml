@@ -24,6 +24,7 @@
   tags:
     - consul
     - nginx-consul
+    - nginx-consul-service
 
 - name: install nginx template
   become: yes

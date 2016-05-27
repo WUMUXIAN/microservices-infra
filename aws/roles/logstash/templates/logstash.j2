@@ -9,65 +9,94 @@
 
 PIDFILE=/var/run/logstash.pid
 
+run() {
+    /usr/bin/docker run -d \
+        --name=logstash \
+        --hostname={{ inventory_hostname }} \
+        --log-driver=none \
+        --privileged=true \
+        --publish=1514:1514 \
+        --publish=25826:25826/udp \
+        --publish=8125:8125/udp \
+        {% if is_master %}
+        --publish=5678:5678/tcp \
+        {% endif %}
+        {% if logstash_input_log4j %}
+        --publish={{ logstash_log4j_port }}:{{ logstash_log4j_port }}/tcp \
+        {% endif %}
+        --volume=/etc/logstash.d:/config-dir \
+        --volume=/var/lib/docker/containers:/logs/docker:ro \
+        --volume=/var/log/mesos:/logs/mesos:ro \
+        {% if "'mesos-slave' in group_names" %}
+        --volume=/tmp/mesos/slaves:/logs/slaves:ro \
+        {% endif %}
+        {% if is_master %}
+        --volume=/var/log/zookeeper:/logs/zookeeper:ro \
+        {% endif %}
+        --volume=/var/log/docker-container:/logs/docker-container \
+        --volume=/usr/share/collectd:/collectd:ro \
+        {{ logstash_image }}:{{ logstash_image_tag }} \
+        logstash -f /config-dir/
+    RETVAL=$?
+    PID=$(docker inspect -f '{% raw %}{{ .Id }}{% endraw %}' logstash)
+    echo
+    if [ -f $PIDFILE ]; then
+        rm $PIDFILE
+    fi
+    echo $PID >> $PIDFILE
+    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/logstash
+    return $RETVAL
+}
+
 start() {
-        echo -n "Starting logstash: "
-        if [ -f $PIDFILE ]; then
-                PID=`cat $PIDFILE`
+    echo -n "Starting logstash: "
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        RUNNING=`docker inspect -f '{% raw %}{{ .State.Running }}{% endraw %}' $PID`
+        EXISTED=$?
+        if [ $EXISTED -eq 0 ]; then
+            if [ $RUNNING = "true" ]; then
                 echo logstash already running: $PID
                 exit 2;
+            else
+                /usr/bin/docker rm -f logstash
+                run                        
+            fi
         else
-                PID=$(/usr/bin/docker run -d \
-                    --name=logstash \
-                    --hostname={{ inventory_hostname }} \
-                    --log-driver=none \
-                    --privileged=true \
-                    --publish=1514:1514 \
-                    --publish=25826:25826/udp \
-                    --publish=8125:8125/udp \
-                    {% if is_master %}
-                    --publish=5678:5678/tcp \
-                    {% endif %}
-                    {% if logstash_input_log4j %}
-                    --publish={{ logstash_log4j_port }}:{{ logstash_log4j_port }}/tcp \
-                    {% endif %}
-                    --volume=/etc/logstash.d:/config-dir \
-                    --volume=/var/lib/docker/containers:/logs/docker:ro \
-                    --volume=/var/log/mesos:/logs/mesos:ro \
-                    {% if "'mesos-slave' in group_names" %}
-                    --volume=/tmp/mesos/slaves:/logs/slaves:ro \
-                    {% endif %}
-                    {% if is_master %}
-                    --volume=/var/log/zookeeper:/logs/zookeeper:ro \
-                    {% endif %}
-                    --volume=/var/log/docker-container:/logs/docker-container \
-                    --volume=/usr/share/collectd:/collectd:ro \
-                    {{ logstash_image }}:{{ logstash_image_tag }} \
-                    logstash -f /config-dir/)    
-                RETVAL=$?
-                echo
-                echo $PID >> $PIDFILE
-                [ $RETVAL -eq 0 ] && touch /var/lock/subsys/logstash
-                return $RETVAL
+            run
         fi
-
+    else
+        run
+    fi
 }
 
 stop() {
-        echo -n "Shutting down logstash: "
-        echo        
-        /usr/bin/docker rm -f logstash
-        rm $PIDFILE
-        echo
-        rm -f /var/lock/subsys/logstash
-        return 0
+    echo -n "Shutting down logstash: "
+    echo        
+    /usr/bin/docker rm -f logstash
+    rm $PIDFILE
+    echo
+    rm -f /var/lock/subsys/logstash
+    return 0
 }
 
 status() {
-        if [ -f $PIDFILE ]; then
-                echo logstash is running
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        RUNNING=`docker inspect -f '{% raw %}{{ .State.Running }}{% endraw %}' $PID`
+        EXISTED=$?
+        if [ $EXISTED -eq 0 ]; then
+            if [ $RUNNING = "true" ]; then
+                echo logstash is running: $PID                        
+            else
+                echo logstash is stopped                        
+            fi
         else
-                echo logstash is stopped
+            echo logstash is stopped
         fi
+    else
+        echo logstash is stopped
+    fi
 }
 
 case "$1" in

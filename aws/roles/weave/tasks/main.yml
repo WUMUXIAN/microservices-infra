@@ -64,6 +64,7 @@
   template: src=./weave.j2 dest=/etc/init.d/weave mode=a+x force=yes
   tags:
     - weave
+    - weave-config
 
 - name: enable and start services
   become: yes

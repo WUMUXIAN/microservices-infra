@@ -1,20 +1,20 @@
 ---
 
-- name: install docker repo
-  become: yes
-  become_method: sudo
-  template: src=./docker.repo.j2 dest=/etc/yum.repos.d/docker.repo
-  tags:
-    - docker 
+# - name: install docker repo
+#   become: yes
+#   become_method: sudo
+#   template: src=./docker.repo.j2 dest=/etc/yum.repos.d/docker.repo
+#   tags:
+#     - docker 
 
 - name: install docker
   become: yes
   become_method: sudo
-  yum: name=docker-engine state=present
+  yum: name=docker state=present
   tags:
     - docker
 
-# Because AWS Linux only support up to docker 1.7.1, we have to hack it to docker 1.9.0 by doing the following
+# Because AWS Linux only support up to docker 1.9.1, we have to hack it to docker 1.10.3 by doing the following
 - name: stop docker
   become: yes
   become_method: sudo
@@ -30,10 +30,10 @@
   tags:
     - docker
 
-- name: download docker 1.9.0 and replace 1.7.1
+- name: download docker 1.10.3 and replace 1.9.1
   become: yes
   become_method: sudo
-  get_url: url=https://get.docker.com/builds/Linux/x86_64/docker-1.9.0 dest=/usr/bin/docker force=yes
+  get_url: url=https://get.docker.com/builds/Linux/x86_64/docker-1.10.3 dest=/usr/bin/docker force=yes
   tags:
     - docker
 
@@ -105,21 +105,5 @@
   become: yes
   become_method: sudo
   user: name=ec2-user group=docker append=yes
-  tags:
-    - docker
-
-- name: pull spark-mesos images
-  become: yes
-  become_method: sudo
-  shell: docker pull wumuxian/spark-mesos:1.6.0-0.27.0
-  tags:
-    - docker
-
-- name: pull jupyter-spark-mesos images
-  become: yes
-  become_method: sudo
-  run_once: true
-  delegate_to: mesos-master1
-  shell: docker pull wumuxian/jupyter-spark-mesos
   tags:
     - docker

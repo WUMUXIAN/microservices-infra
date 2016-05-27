@@ -14,39 +14,68 @@ ENVFILE=/etc/weave/weave.conf
 [ -x "$DAEMON" ] || exit 0
 eval $(cat $ENVFILE)
 
+run() {
+    $DAEMON launch-router $WEAVE_OPTIONS $WEAVE_PEERS
+    RETVAL=$?
+    PID=$(docker inspect -f '{% raw %}{{ .Id }}{% endraw %}' weave)
+    echo
+    if [ -f $PIDFILE ]; then
+        rm $PIDFILE
+    fi
+    echo $PID >> $PIDFILE
+    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/weave
+    return $RETVAL
+}
+
 start() {
-        echo -n "Starting weave: "
-        if [ -f $PIDFILE ]; then
-                PID=`cat $PIDFILE`
+    echo -n "Starting weave: "
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        RUNNING=`docker inspect -f '{% raw %}{{ .State.Running }}{% endraw %}' $PID`
+        EXISTED=$?
+        if [ $EXISTED -eq 0 ]; then
+            if [ $RUNNING = "true" ]; then
                 echo weave already running: $PID
                 exit 2;
+            else
+                /usr/bin/docker rm -f weave
+                run                        
+            fi
         else
-                PID=$($DAEMON launch-router $WEAVE_OPTIONS $WEAVE_PEERS)    
-                RETVAL=$?
-                echo
-                echo $PID >> $PIDFILE
-                [ $RETVAL -eq 0 ] && touch /var/lock/subsys/weave
-                return $RETVAL
+            run
         fi
-
+    else
+        run
+    fi
 }
 
 stop() {
-        echo -n "Shutting down weave: "
-        echo        
-        $DAEMON stop-router
-        rm $PIDFILE
-        echo
-        rm -f /var/lock/subsys/weave
-        return 0
+    echo -n "Shutting down weave: "
+    echo        
+    $DAEMON stop-router
+    rm $PIDFILE
+    echo
+    rm -f /var/lock/subsys/weave
+    return 0
 }
 
 status() {
-        if [ -f $PIDFILE ]; then
-                echo weave is running
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        RUNNING=`docker inspect -f '{% raw %}{{ .State.Running }}{% endraw %}' $PID`
+        EXISTED=$?
+        if [ $EXISTED -eq 0 ]; then
+            if [ $RUNNING = "true" ]; then
+                echo weave is running: $PID                        
+            else
+                echo weave is stopped                        
+            fi
         else
-                echo weave is stopped
+            echo weave is stopped
         fi
+    else
+        echo weave is stopped
+    fi
 }
 
 case "$1" in

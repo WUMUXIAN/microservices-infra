@@ -19,7 +19,7 @@ are done with it, download your access key file .pem to the *ec2* folder and nam
   mesos-slave2
   ....
   ....
-  [all:children]
+  [mesos:children]
   mesos-master
   mesos-slave
   ```
