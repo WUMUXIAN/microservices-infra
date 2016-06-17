@@ -1,0 +1,7 @@
+---
+
+- hosts: mesos-slave
+  gather_facts: yes
+  roles:
+    - postfix
+

@@ -1,0 +1,18 @@
+{
+  "services": [
+    {
+      "name": "postfix",
+      "id": "postfix",
+      "port": 25,
+      "checks": [
+        {
+          "id": "postfix-status",
+          "name": "postfix status",
+          "script": "netstat -ltn | grep 25; if [[ \"$?\" != \"0\" ]]; then echo Postfix is not healthy.; exit 1; fi;",
+          "interval": "10s",
+          "timeout": "5s"
+        }
+      ]
+    }
+  ]
+}

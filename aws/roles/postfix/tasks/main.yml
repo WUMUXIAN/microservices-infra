@@ -1,0 +1,66 @@
+---
+- name: make sure sendmail service is not running and disabled to free port 25
+  become: yes
+  become_method: sudo
+  service: name=sendmail state=stopped enabled=no
+  tags:
+    - postfix
+
+- name: install postfix
+  become: yes
+  become_method: sudo
+  yum: name=postfix state=latest
+  tags:
+    - postfix
+
+- name: configure postfix
+  become: yes
+  become_method: sudo
+  copy: src=./main.cf dest=/etc/postfix/main.cf force=yes
+  notify:
+    - restart postfix
+  tags:
+    - postfix
+    - postfix-config
+
+- name: set up user database
+  become: yes
+  become_method: sudo
+  copy: src=./virtual dest=/etc/postfix/virtual force=yes
+  tags:
+    - postfix
+    - postfix-config
+
+- name: set up body checks file
+  become: yes
+  become_method: sudo
+  copy: src=./body_checks dest=/etc/postfix/body_checks
+  tags:
+    - postfix
+    - postfix-config
+
+- name: turn virtual file into lookup table
+  become: yes
+  become_method: sudo
+  command: /usr/sbin/postmap /etc/postfix/virtual
+  tags:
+    - postfix
+    - postfix-config
+
+- name: start postfix and enable into
+  become: yes
+  become_method: sudo
+  service: name=postfix state=started enabled=yes
+  tags:
+    - postfix
+    - postfix-config
+
+- name: register postfix to consul
+  become: yes
+  become_method: sudo
+  copy: src=./postfix.json dest=/etc/consul/ force=yes
+  notify:
+    - reload consul
+  tags:
+    - postfix
+    - consul

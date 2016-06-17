@@ -1,0 +1,8 @@
+---
+
+- name: restart postfix
+  become: yes
+  become_method: sudo
+  service:
+    name: postfix
+    state: restarted
